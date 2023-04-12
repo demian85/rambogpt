@@ -1,0 +1,48 @@
+{
+  "name": "rambogpt",
+  "version": "0.0.1",
+  "engines": {
+    "node": "18.x"
+  },
+  "description": "Your ChatGPT wrapper as a Telegram Bot",
+  "main": "build/index.js",
+  "scripts": {
+    "postinstall": "npm run build",
+    "build": "tsc",
+    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "start:dev": "ts-node -r tsconfig-paths/register src/index.ts | pino-pretty",
+    "dev": "tsc --watch",
+    "lint": "eslint ./src",
+    "format": "prettier --write './src/**/*.{js,jsx,ts,tsx,json}'",
+    "test": "jest --detectOpenHandles",
+    "ts-node": "ts-node"
+  },
+  "keywords": [
+    "ChatGPT",
+    "AI",
+    "Telegram",
+    "bot"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/demian85/rambogpt.git"
+  },
+  "author": "Demian Rodriguez",
+  "license": "ISC",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.58.0",
+    "@typescript-eslint/parser": "^5.58.0",
+    "dotenv": "^16.0.3",
+    "eslint": "^8.38.0",
+    "pino-pretty": "^10.0.0",
+    "prettier": "^2.8.7",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "openai": "^3.2.1",
+    "pino": "^8.11.0",
+    "telegraf": "^4.12.2"
+  }
+}
