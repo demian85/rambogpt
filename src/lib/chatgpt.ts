@@ -1,6 +1,7 @@
 import logger from '@lib/logger'
 import { OpenAIResponseError } from '@lib/types'
 import { Configuration, CreateChatCompletionRequest, OpenAIApi } from 'openai'
+import { createReadStream } from 'fs'
 
 const DEFAULT_MODEL = 'gpt-3.5-turbo'
 
@@ -12,7 +13,7 @@ const openai = new OpenAIApi(openAIConfiguration)
 export async function chatCompletion(
   params: CreateChatCompletionRequest
 ): Promise<string> {
-  logger.debug({ params }, 'Sending OpenAI request...')
+  logger.debug({ params }, 'Sending OpenAI chat completion request...')
 
   try {
     const completion = await openai.createChatCompletion(params)
@@ -23,7 +24,31 @@ export async function chatCompletion(
     return response
   } catch (err) {
     handleError(err as OpenAIResponseError)
-    return ''
+    throw err
+  }
+}
+
+export async function audioTranscription(file: string): Promise<string> {
+  logger.debug({ file }, 'Sending OpenAI audio transcription request...')
+
+  try {
+    const transcription = await openai.createTranscription(
+      // @ts-ignore
+      createReadStream(file),
+      'whisper-1',
+      undefined,
+      undefined,
+      undefined,
+      'en'
+    )
+    const response = transcription.data.text
+
+    logger.debug({ response }, 'OpenAI response')
+
+    return response
+  } catch (err) {
+    handleError(err as OpenAIResponseError)
+    throw err
   }
 }
 
@@ -32,6 +57,6 @@ function handleError(error: OpenAIResponseError) {
     const { status, data } = error.response
     logger.error({ status, data })
   } else {
-    logger.error({ error })
+    logger.error({ err: error })
   }
 }

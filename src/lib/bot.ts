@@ -1,8 +1,9 @@
 import { Context, Telegraf } from 'telegraf'
 import { message } from 'telegraf/filters'
 import logger from '@lib/logger'
-import { chatCompletion } from './chatgpt'
+import { audioTranscription, chatCompletion } from './chatgpt'
 import { ChatCompletionRequestMessage } from 'openai'
+import { oggToMp3 } from './audio'
 
 const BOT_USERNAME = '@rambogpt_bot'
 
@@ -27,7 +28,7 @@ class RamboGPT {
     bot.help((ctx) => ctx.reply('Talk to me'))
 
     bot.use((ctx, _next) => {
-      logger.debug({ chat: ctx.chat }, 'Middleware call')
+      logger.debug({ message: ctx.message }, 'Middleware call')
 
       if (ctx.chat?.type !== 'private') {
         throw new Error('Bot not allowed in groups')
@@ -42,6 +43,11 @@ class RamboGPT {
     })
 
     bot.command('new', async (ctx) => {
+      const fromUsername = ctx.message.from.username
+      if (!fromUsername) {
+        return
+      }
+      this.promptHistory[fromUsername] = []
       await ctx.reply(`Starting a new chat`)
     })
 
@@ -55,40 +61,64 @@ class RamboGPT {
 
       logger.debug({ message: ctx.message })
 
-      if (!text || !fromUsername) {
-        return
-      }
-
       const isMention = ctx.message.entities?.find(
         (v) =>
           v.type === 'mention' && text.substring(0, v.length) === BOT_USERNAME
       )
+
+      if (!text || !fromUsername || (ctx.chat.type === 'group' && !isMention)) {
+        return
+      }
+
       const prompt = isMention
         ? text.substring(BOT_USERNAME.length).trim()
         : text
 
-      this.appendToPromptHistory(fromUsername, {
-        role: 'user',
-        content: prompt,
-      })
-
       ctx.sendChatAction('typing')
 
-      const response = await chatCompletion({
-        model: this.gptModel,
-        messages: this.getPromptHistory(fromUsername),
-      })
+      try {
+        const response = await this.handleChatCompletion(fromUsername, prompt)
 
-      if (response) {
-        this.appendToPromptHistory(fromUsername, {
-          role: 'assistant',
-          content: response,
-        })
         const params =
           ctx.chat.type === 'private'
             ? {}
             : { reply_to_message_id: ctx.message.message_id }
         ctx.reply(response, params)
+      } catch (err) {
+        const error = err as Error
+        ctx.reply(`An error occurred: ${error.message}`)
+      }
+    })
+
+    bot.on(message('voice'), async (ctx) => {
+      const fromUsername = ctx.message.from.username
+
+      if (!fromUsername) {
+        return
+      }
+
+      const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id)
+      const outputFile = await oggToMp3(fileLink.toString())
+      const transcription = await audioTranscription(outputFile)
+
+      logger.debug({ transcription, fileLink })
+
+      ctx.sendChatAction('typing')
+
+      try {
+        const response = await this.handleChatCompletion(
+          fromUsername,
+          transcription
+        )
+
+        const params =
+          ctx.chat.type === 'private'
+            ? {}
+            : { reply_to_message_id: ctx.message.message_id }
+        ctx.reply(response, params)
+      } catch (err) {
+        const error = err as Error
+        ctx.reply(`An error occurred: ${error.message}`)
       }
     })
 
@@ -103,6 +133,25 @@ class RamboGPT {
     bot.launch()
 
     logger.debug('Telegram Bot initialized')
+  }
+
+  private async handleChatCompletion(fromUsername: string, prompt: string) {
+    this.appendToPromptHistory(fromUsername, {
+      role: 'user',
+      content: prompt,
+    })
+
+    const response = await chatCompletion({
+      model: this.gptModel,
+      messages: this.getPromptHistory(fromUsername),
+    })
+
+    this.appendToPromptHistory(fromUsername, {
+      role: 'assistant',
+      content: response,
+    })
+
+    return response
   }
 
   private appendToPromptHistory(
