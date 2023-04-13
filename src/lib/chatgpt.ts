@@ -28,18 +28,24 @@ export async function chatCompletion(
   }
 }
 
-export async function audioTranscription(file: string): Promise<string> {
-  logger.debug({ file }, 'Sending OpenAI audio transcription request...')
+export async function audioTranscription(
+  inputFile: string,
+  language: string = 'en'
+): Promise<string> {
+  logger.debug(
+    { file: inputFile },
+    'Sending OpenAI audio transcription request...'
+  )
 
   try {
     const transcription = await openai.createTranscription(
       // @ts-ignore
-      createReadStream(file),
+      createReadStream(inputFile),
       'whisper-1',
       undefined,
       undefined,
       undefined,
-      'en'
+      language
     )
     const response = transcription.data.text
 

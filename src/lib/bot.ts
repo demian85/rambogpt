@@ -27,19 +27,10 @@ class RamboGPT {
 
     bot.help((ctx) => ctx.reply('Talk to me'))
 
-    bot.use((ctx, _next) => {
+    bot.use(async (ctx, _next) => {
       logger.debug({ message: ctx.message }, 'Middleware call')
 
-      if (ctx.chat?.type !== 'private') {
-        throw new Error('Bot not allowed in groups')
-      }
-      if (
-        !ctx.chat.username ||
-        !['demian85', 'SilvanaFontana'].includes(ctx.chat.username)
-      ) {
-        throw new Error('Forbidden')
-      }
-      _next()
+      await _next()
     })
 
     bot.command('new', async (ctx) => {
@@ -99,7 +90,10 @@ class RamboGPT {
 
       const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id)
       const outputFile = await oggToMp3(fileLink.toString())
-      const transcription = await audioTranscription(outputFile)
+      const transcription = await audioTranscription(
+        outputFile,
+        ctx.message.from.language_code ?? 'en'
+      )
 
       logger.debug({ transcription, fileLink })
 
