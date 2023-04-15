@@ -42,6 +42,10 @@ class RamboGPT {
       await ctx.reply(`Starting a new chat`)
     })
 
+    bot.command('mode', async (ctx) => {
+      await ctx.reply(`Select the new mode`)
+    })
+
     bot.command('exit', async (ctx) => {
       await ctx.reply(`Ended current operation`)
     })
@@ -49,8 +53,6 @@ class RamboGPT {
     bot.on(message('text'), async (ctx) => {
       const text = ctx.message.text.trim()
       const fromUsername = ctx.message.from.username
-
-      logger.debug({ message: ctx.message })
 
       const isMention = ctx.message.entities?.find(
         (v) =>
@@ -84,7 +86,7 @@ class RamboGPT {
     bot.on(message('voice'), async (ctx) => {
       const fromUsername = ctx.message.from.username
 
-      if (!fromUsername) {
+      if (!fromUsername || ctx.chat.type === 'group') {
         return
       }
 
