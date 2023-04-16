@@ -2,16 +2,16 @@
 
 Your ChatGPT wrapper as a Telegram Bot.
 
-Chat completions is the only functionality implemented for now.
+## Features
 
-## Roadmap
-
-- Image generation/edits
-- Text To Speech
-- Speech to Text
-- Embeddings
-- Fine-tuning
-- Connect multiple AIs
+- ✅ Chat completion
+- ✅ Image edits
+- ✅ Text To Speech
+- ⌛ Image generation
+- ⌛ Speech to Text
+- ⌛ Fine-tuning
+- ⌛ Connect multiple AIs
+- ⌛ Autonomy
 
 ## Run it
 
