@@ -58,6 +58,37 @@ export async function audioTranscription(
   }
 }
 
+export async function imageEdit(
+  inputFilePath: string,
+  prompt: string,
+  n: number = 1,
+  size: string = '512x512'
+): Promise<string[]> {
+  logger.debug(
+    { inputFilePath, prompt, n, size },
+    'Sending OpenAI image edit request...'
+  )
+
+  try {
+    const response = await openai.createImageEdit(
+      // @ts-ignore
+      createReadStream(inputFilePath),
+      prompt,
+      undefined,
+      n,
+      size,
+      'b64_json'
+    )
+
+    logger.debug({ response }, 'OpenAI response')
+
+    return response.data.data.map((v) => String(v.b64_json))
+  } catch (err) {
+    handleError(err as OpenAIResponseError)
+    throw err
+  }
+}
+
 function handleError(error: OpenAIResponseError) {
   if (error.response) {
     const { status, data } = error.response

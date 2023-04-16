@@ -1,9 +1,12 @@
-import { Context, Telegraf } from 'telegraf'
+import { Telegraf } from 'telegraf'
 import { message } from 'telegraf/filters'
 import logger from '@lib/logger'
-import { audioTranscription, chatCompletion } from './chatgpt'
+import { audioTranscription, chatCompletion, imageEdit } from './chatgpt'
 import { ChatCompletionRequestMessage } from 'openai'
 import { oggToMp3 } from './audio'
+import { rmSync, writeFileSync } from 'fs'
+import { join } from 'path'
+import sharp from 'sharp'
 
 const BOT_USERNAME = '@rambogpt_bot'
 
@@ -43,11 +46,11 @@ class RamboGPT {
     })
 
     bot.command('mode', async (ctx) => {
-      await ctx.reply(`Select the new mode`)
+      await ctx.reply(`Not available yet`)
     })
 
     bot.command('exit', async (ctx) => {
-      await ctx.reply(`Ended current operation`)
+      await ctx.reply(`Not available yet`)
     })
 
     bot.on(message('text'), async (ctx) => {
@@ -112,6 +115,55 @@ class RamboGPT {
             ? {}
             : { reply_to_message_id: ctx.message.message_id }
         ctx.reply(response, params)
+      } catch (err) {
+        const error = err as Error
+        ctx.reply(`An error occurred: ${error.message}`)
+      }
+    })
+
+    bot.on(message('photo'), async (ctx) => {
+      const fromUsername = ctx.message.from.username
+
+      if (!fromUsername || ctx.chat.type === 'group') {
+        return
+      }
+
+      const prompt = ctx.message.caption
+
+      if (!prompt) {
+        ctx.reply(`I'm unable to edit an image without instructions.`)
+        return
+      }
+
+      const perfectSizeImage = ctx.message.photo.find(
+        (photo) => photo.width >= 512
+      )
+      ctx.message.photo.pop()
+
+      if (!perfectSizeImage) {
+        return
+      }
+
+      const fileLink = await ctx.telegram.getFileLink(perfectSizeImage.file_id)
+
+      logger.debug({ fileLink })
+
+      try {
+        const imageRes = await fetch(fileLink)
+        const imageblob = await imageRes.blob()
+        const tempImagePath = join(__dirname, `__temp.png`)
+        await sharp(Buffer.from(await imageblob.arrayBuffer()))
+          .resize(512, 512)
+          .png()
+          .ensureAlpha()
+          .toFile(tempImagePath)
+        const openAIresponse = await imageEdit(tempImagePath, prompt)
+        // rmSync(tempImagePath)
+        const responseImage = openAIresponse[0]
+        ctx.replyWithPhoto({
+          source: Buffer.from(responseImage, 'base64'),
+          filename: 'edited_image.png',
+        })
       } catch (err) {
         const error = err as Error
         ctx.reply(`An error occurred: ${error.message}`)
