@@ -27,7 +27,12 @@ class RamboGPT {
 
     bot.start((ctx) => ctx.reply(`Welcome! I'm your AI assistant`))
 
-    bot.help((ctx) => ctx.reply('Talk to me'))
+    bot.help((ctx) =>
+      ctx.reply(`
+Talk to me. I accept the following message types: text, voice, photo.
+I only accept one photo and it must contain a caption as the prompt. I will then respond with the edited image.
+    `)
+    )
 
     bot.use(async (ctx, _next) => {
       logger.debug({ message: ctx.message }, 'Middleware call')
