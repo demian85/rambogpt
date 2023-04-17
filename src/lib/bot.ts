@@ -144,7 +144,7 @@ class RamboGPT {
 
       const fileLink = await ctx.telegram.getFileLink(perfectSizeImage.file_id)
 
-      logger.debug({ fileLink })
+      ctx.sendChatAction('upload_photo')
 
       try {
         const imageRes = await fetch(fileLink)
@@ -156,22 +156,13 @@ class RamboGPT {
           .png()
           .ensureAlpha()
           .toFile(tempImagePath)
-        // await sharp({
-        //   create: {
-        //     width: 512,
-        //     height: 512,
-        //     channels: 4,
-        //     background: { alpha: 0, r: 0, g: 0, b: 0 },
-        //   },
-        // }).toFile(tempMaskPath)
         const openAIresponse = await imageEdit(
           tempImagePath,
           tempMaskPath,
           prompt
         )
-        const responseImage = openAIresponse[0]
         ctx.replyWithPhoto({
-          source: Buffer.from(responseImage, 'base64'),
+          source: Buffer.from(openAIresponse[0], 'base64'),
           filename: 'edited_image.png',
         })
       } catch (err) {
@@ -179,14 +170,6 @@ class RamboGPT {
         ctx.reply(`An error occurred: ${error.message}`)
       }
     })
-
-    // bot.on('callback_query', async (ctx) => {
-    //   await ctx.answerCbQuery()
-    // })
-
-    // bot.on('inline_query', async (ctx) => {
-    //   await ctx.answerInlineQuery([])
-    // })
 
     bot.launch()
 
