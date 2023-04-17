@@ -4,7 +4,6 @@ import logger from '@lib/logger'
 import { audioTranscription, chatCompletion, imageEdit } from './chatgpt'
 import { ChatCompletionRequestMessage } from 'openai'
 import { oggToMp3 } from './audio'
-import { rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import sharp from 'sharp'
 
@@ -135,10 +134,9 @@ class RamboGPT {
         return
       }
 
-      const perfectSizeImage = ctx.message.photo.find(
-        (photo) => photo.width >= 512
-      )
-      ctx.message.photo.pop()
+      const perfectSizeImage =
+        ctx.message.photo.find((photo) => photo.width >= 512) ??
+        ctx.message.photo.pop()
 
       if (!perfectSizeImage) {
         return
@@ -150,15 +148,27 @@ class RamboGPT {
 
       try {
         const imageRes = await fetch(fileLink)
-        const imageblob = await imageRes.blob()
-        const tempImagePath = join(__dirname, `__temp.png`)
-        await sharp(Buffer.from(await imageblob.arrayBuffer()))
+        const imageBlob = await imageRes.blob()
+        const tempImagePath = join(__dirname, '../images', '__temp.png')
+        const tempMaskPath = join(__dirname, '../images', 'mask.png')
+        await sharp(Buffer.from(await imageBlob.arrayBuffer()))
           .resize(512, 512)
           .png()
           .ensureAlpha()
           .toFile(tempImagePath)
-        const openAIresponse = await imageEdit(tempImagePath, prompt)
-        // rmSync(tempImagePath)
+        // await sharp({
+        //   create: {
+        //     width: 512,
+        //     height: 512,
+        //     channels: 4,
+        //     background: { alpha: 0, r: 0, g: 0, b: 0 },
+        //   },
+        // }).toFile(tempMaskPath)
+        const openAIresponse = await imageEdit(
+          tempImagePath,
+          tempMaskPath,
+          prompt
+        )
         const responseImage = openAIresponse[0]
         ctx.replyWithPhoto({
           source: Buffer.from(responseImage, 'base64'),

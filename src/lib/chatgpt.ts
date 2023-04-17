@@ -60,6 +60,7 @@ export async function audioTranscription(
 
 export async function imageEdit(
   inputFilePath: string,
+  maskFilePath: string,
   prompt: string,
   n: number = 1,
   size: string = '512x512'
@@ -74,7 +75,7 @@ export async function imageEdit(
       // @ts-ignore
       createReadStream(inputFilePath),
       prompt,
-      undefined,
+      createReadStream(maskFilePath),
       n,
       size,
       'b64_json'
