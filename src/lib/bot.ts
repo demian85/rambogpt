@@ -171,7 +171,7 @@ I only accept one photo and it must contain a caption as the prompt. I will then
         )
         ctx.replyWithPhoto({
           source: Buffer.from(openAIresponse[0], 'base64'),
-          filename: 'edited_image.png',
+          filename: `${perfectSizeImage.file_unique_id}.png`,
         })
       } catch (err) {
         const error = err as Error
