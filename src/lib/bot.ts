@@ -144,6 +144,9 @@ I only accept one photo and it must contain a caption as the prompt. I will then
         ctx.message.photo.pop()
 
       if (!perfectSizeImage) {
+        ctx.reply(
+          `I couldn't find a valid image to edit. Size should be at least 512x512`
+        )
         return
       }
 
