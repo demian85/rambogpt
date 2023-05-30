@@ -6,6 +6,8 @@ import { ChatCompletionRequestMessage } from 'openai'
 import { oggToMp3 } from './audio'
 import { join } from 'path'
 import sharp from 'sharp'
+import htmlExtractor from 'unfluff'
+import { execFileSync } from 'child_process'
 
 const BOT_USERNAME = '@rambogpt_bot'
 
@@ -51,6 +53,44 @@ I only accept one photo and it must contain a caption as the prompt. I will then
 
     bot.command('mode', async (ctx) => {
       await ctx.reply(`Not available yet`)
+    })
+
+    bot.command('gist', async (ctx) => {
+      const url = ctx.message.entities?.find((item) => item.type === 'url')
+
+      if (!url) {
+        ctx.reply(`You must provide a valid URL`)
+        return
+      }
+
+      const urlString = ctx.message.text.substring(
+        url.offset,
+        url.offset + url.length
+      )
+      const html = execFileSync('curl', ['-s', urlString], { encoding: 'utf8' })
+      const fromUsername = String(ctx.message.from.username)
+
+      const gist = htmlExtractor(html)
+
+      console.log(gist.text)
+
+      ctx.sendChatAction('typing')
+
+      try {
+        const response = await this.handleChatCompletion(
+          fromUsername,
+          `The text between braces is extracted from a webpage. Ignore the language of this prompt and use the same language of that text to make a summary of it. {${gist.text}}`
+        )
+
+        const params =
+          ctx.chat.type === 'private'
+            ? {}
+            : { reply_to_message_id: ctx.message.message_id }
+        ctx.reply(response, params)
+      } catch (err) {
+        const error = err as Error
+        ctx.reply(`An error occurred: ${error.message}`)
+      }
     })
 
     bot.command('exit', async (ctx) => {
